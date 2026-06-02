@@ -126,6 +126,26 @@ Criterios de b\'usqueda (especialidad, enfermedad, rango de fechas) &
 Resultados en formato tabular &
 Gerencia &
 Debe cumplir con los cuatro reportes exigidos en el enunciado del proyecto. \\ \hline
+
+Acceso al Sistema &
+Controla el inicio de sesi\'on mediante usuario y contrase\~na, y redirige a cada persona seg\'un su rol (admin, m\'edico, enfermero o recepcionista) &
+Nombre de usuario, contrase\~na &
+Pantalla principal del rol correspondiente &
+Todos &
+Cada usuario debe tener un rol asignado. Las contrase\~nas se almacenan de forma segura usando hash SHA-256. \\ \hline
+
+Gesti\'on de Usuarios &
+Permite crear, editar y desactivar cuentas de usuario del sistema, as\'ignando nombre de usuario, contrase\~na, rol y estado activo/inactivo &
+Nombre de usuario, contrase\~na, rol, nombre completo &
+Lista de usuarios con su rol y estado &
+Admin &
+Solo el administrador puede gestionar usuarios. No se puede eliminar un usuario, solo desactivarlo. \\ \hline
+
+Historial del Paciente &
+Muestra el historial cl\'inico completo de un paciente, con todos sus diagn\'osticos ordenados cronol\'ogicamente y qui\'en los registr\'o &
+Paciente seleccionado &
+Lista de diagn\'osticos con fecha, descripci\'on y usuario que lo registr\'o &
+M\'edico / Admin &
 \caption{Funcionalidades del sistema de gesti\'on para centro de salud}
 \end{longtable}
 }
@@ -134,18 +154,20 @@ Debe cumplir con los cuatro reportes exigidos en el enunciado del proyecto. \\ \
 
 \subsection{b) Descripci\'on del entorno de ejecuci\'on (S.O., Motor de BD)}
 
-Para este proyecto usamos las siguientes herramientas:
+Para este proyecto seleccionamos cada herramienta con base en los requisitos t\'ecnicos y el contexto del centro de salud:
 
 \begin{itemize}
-    \item \textbf{Sistema Operativo -- Windows 10/11:} Usamos Windows porque es lo que hay en la mayoría de centros de salud y todo el mundo sabe usarlo.
+    \item \textbf{Sistema Operativo -- Windows 10/11:} Se eligi\'o Windows por ser el sistema operativo m\'as extendido en centros de salud y consultorios m\'edicos en Colombia, lo que facilita el soporte t\'ecnico y la capacitaci\'on del personal. Adem\'as, Windows ofrece compatibilidad completa con MySQL Server 8.0 y las herramientas de desarrollo utilizadas, sin necesidad de configuraciones adicionales de compatibilidad.
 
-    \item \textbf{Motor de Base de Datos -- MySQL:} MySQL porque es el que más se usa, es gratis y funciona bien para lo que necesitamos. Además soporta vistas, triggers y todo eso que necesitamos.
+    \item \textbf{Motor de Base de Datos -- MySQL 8.0:} MySQL se seleccion\'o por las siguientes razones t\'ecnicas: (1) es un motor relacional maduro que soporta completamente disparadores (triggers), procedimientos almacenados, vistas y restricciones CHECK, caracter\'isticas exigidas en el enunciado del proyecto; (2) cuenta con licencia gratuita (Community Edition) que no genera costos de implementaci\'on; (3) ofrece conectividad nativa con Python a trav\'es del conector oficial mysql-connector-python, y (4) su amplia adopci\'on en el \'mbito acad\'emico garantiza disponibilidad de documentaci\'on y soporte.
 
     \item \textbf{Herramientas de Desarrollo:}
     \begin{itemize}
-        \item \textit{MySQL Workbench:} Para dise\~nar y administrar la base de datos gr\'aficamente, ejecutar consultas y ver los resultados de forma visual.
-        \item \textit{Visual Studio Code:} Como editor de c\'odigo principal para desarrollar la aplicaci\'on en Python y gestionar el proyecto.
-        \item \textit{Python 3.x con Streamlit:} Para construir la interfaz gr\'afica de usuario de forma r\'apida y sencilla. Streamlit permite crear aplicaciones web interactivas escribiendo solo Python.
+        \item \textit{MySQL Workbench 8.0:} Se emple\'o para el modelado conceptual y relacional de la base de datos, la generaci\'on de los diagramas ER y relacional, y la administraci\'on visual del esquema. Su motor de reverse engineering permite exportar el diagrama directamente desde la base de datos implementada, garantizando que el modelo gr\'afico refleje fielmente la estructura f\'isica.
+
+        \item \textit{Visual Studio Code:} Se utiliz\'o como entorno de desarrollo integrado por su ligereza, soporte nativo para Python y Git, y su ecosistema de extensiones que facilitan la edici\'on de c\'odigo, la depuraci\'on y el control de versiones.
+
+        \item \textit{Python 3.x con Streamlit:} Python se seleccion\'o como lenguaje de programaci\'on por su sintaxis clara y su amplio soporte para conectividad con bases de datos. Streamlit, espec\'ificamente, permite construir interfaces web interactivas (formularios, tablas, gr\'aficos) escribiendo \'unicamente c\'odigo Python, sin necesidad de HTML, CSS o JavaScript. Esto aceler\'o el desarrollo de la aplicaci\'on de escritorio-web del centro de salud.
     \end{itemize}
 \end{itemize}
 
@@ -171,11 +193,11 @@ A continuaci\'on se presentan las reglas que rigen el funcionamiento del centro 
 
     \item \textbf{Diagn\'osticos a trav\'es del tiempo.} Un paciente puede tener varios diagn\'osticos a lo largo del tiempo porque asiste al m\'edico en distintas ocasiones. Cada diagn\'istico queda registrado con su fecha y una descripci\'on detallada, formando as\'i el historial cl\'inico del paciente.
 
-\item \textbf{Validaciones de integridad avanzadas.} Adem\'as de las reglas generales del centro de salud, la base de datos debe impedir autom\'aticamente registros inconsistentes. Por esta raz\'on, se implementan restricciones y disparadores (triggers) que validan que los horarios de un mismo m\'edico no se traslapen, que un empleado no tenga periodos de vacaciones cruzados, que solo los m\'edicos de tipo Sustituto puedan registrar periodos de sustituci\'on y que los diagn\'osticos no tengan fechas futuras.
+\item \textbf{Validaciones para evitar errores en los registros.} No se debe permitir que un m\'edico tenga dos turnos que se empalmen en el mismo d\'ia, porque no puede atender dos consultas al mismo tiempo. Un empleado no puede tener dos periodos de vacaciones que se crucen entre s\'i. \'Unicamente los m\'edicos que trabajan como sustitutos pueden tener periodos de sustituci\'on registrados. Tampoco se puede registrar un diagn\'ostico con una fecha futura, porque corresponder\'ia a una atenci\'on que a\'un no ha ocurrido.
 
 \item \textbf{Disponibilidad m\'edica.} Un m\'edico se considera disponible para atender pacientes cuando pertenece a la especialidad solicitada, no se encuentra actualmente de vacaciones y, en caso de ser sustituto, tiene un periodo de sustituci\'on activo. Para los sustitutos, se toma como referencia el \'ultimo periodo registrado: si la fecha de ingreso ya ocurri\'o y la fecha de retiro es nula o a\'un no ha llegado, el sustituto se considera activo.
 
-\item \textbf{Asignaci\'on segura de pacientes.} El sistema debe impedir que se asignen nuevos pacientes a m\'edicos que no se encuentren disponibles en el momento del registro, incluyendo m\'edicos en vacaciones y m\'edicos sustitutos inactivos.
+\item \textbf{Asignaci\'on segura de pacientes.} No se deben asignar pacientes nuevos a m\'edicos que en ese momento no est\'en disponibles para atender, como los que est\'an de vacaciones o los m\'edicos sustitutos que no tienen un periodo activo en el centro.
 
 \item \textbf{Auditor\'ia de operaciones.} Para mejorar la trazabilidad del sistema, se registra una bit\'acora cuando se crean datos cl\'inicos o administrativos relevantes, como pacientes, diagn\'osticos y vacaciones. Esto permite conocer qu\'e tabla fue afectada, qu\'e operaci\'on se realiz\'o y en qu\'e momento ocurri\'o.
 
@@ -229,7 +251,7 @@ A continuaci\'on se describen los elementos principales del diagrama:
 
     \item \textbf{Generalizaci\'on entre EMPLEADO y MEDICO:} En el diagrama se ve un tri\'angulo ISA que conecta EMPLEADO con MEDICO. B\'asicamente significa que los m\'edicos son empleados pero con datos extra como la licencia y la especialidad.
 
-    \item \textbf{Entidades d\'ebiles:} Algunas tablas aparecen con doble recuadro porque dependen de otra tabla para existir. Por ejemplo, un horario no tiene sentido si no est\'a asociado a un m\'edico, y un diagn\'ostico siempre es de alg\'un paciente.
+    \item \textbf{Entidades d\'ebiles:} Las entidades HORARIO, PERIODO\_SUSTITUTO, VACACIONES y DIAGN\'OSTICO aparecen con doble recuadro (periferias=2) porque su existencia depende completamente de otra entidad. Un horario no tiene sentido si no est\'a asociado a un m\'edico concreto; un periodo de sustituci\'on solo existe si hay un m\'edico sustituto que lo ejecuta; las vacaciones siempre pertenecen a un empleado espec\'ifico, y un diagn\'ostico siempre est\'a vinculado a un paciente. En todos estos casos, la entidad fuerte correspondiente (EMPLEADO, MEDICO o PACIENTE) define el contexto de existencia de la entidad d\'ebil, y sin ella el registro carecer\'ia de significado.
 
     \item \textbf{Sin atributo ``estado'' en VACACIONES:} La profe nos pidió quitar el campo ``estado'' de las vacaciones. Ahora el estado se calcula autom\'aticamente comparando las fechas con la fecha de hoy.
 \end{itemize}
