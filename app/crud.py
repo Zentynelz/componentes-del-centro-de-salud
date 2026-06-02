@@ -1,5 +1,15 @@
+# -*- coding: utf-8 -*-
+"""
+crud.py - Operaciones CRUD para VitalCare Centro de Salud
+Incluye funciones para pacientes, diagnósticos, horarios,
+vacaciones, usuarios, enfermedades e historial médico.
+"""
+
 from db import fetch_pairs, fetch_dataframe, execute_query
 
+# ============================================================
+# OPCIONES PARA DROPDOWNS
+# ============================================================
 
 def opciones_municipios():
     return fetch_pairs("SELECT id_municipio, nombre FROM municipio ORDER BY nombre;")
@@ -70,6 +80,20 @@ def opciones_vacaciones():
     """)
 
 
+def opciones_usuarios():
+    """Retorna lista de usuarios activos para dropdown."""
+    return fetch_pairs("""
+        SELECT id_usuario, CONCAT(nombre_completo, ' (', rol, ')')
+        FROM usuario
+        WHERE activo = TRUE
+        ORDER BY nombre_completo;
+    """)
+
+
+# ============================================================
+# PACIENTES
+# ============================================================
+
 def obtener_paciente(id_paciente: int):
     df = fetch_dataframe("""
         SELECT id_paciente, id_municipio, id_empleado_medico, nombre, direccion
@@ -79,20 +103,13 @@ def obtener_paciente(id_paciente: int):
     return None if df.empty else df.iloc[0]
 
 
-def obtener_diagnostico(id_diagnostico: int):
-    df = fetch_dataframe("""
-        SELECT id_diagnostico, id_paciente, fecha, descripcion
-        FROM diagnostico
-        WHERE id_diagnostico = %s;
-    """, (id_diagnostico,))
-    return None if df.empty else df.iloc[0]
-
-
-def crear_paciente(nombre: str, direccion: str, id_municipio: int, id_medico: int, telefono: str | None = None):
+def crear_paciente(nombre: str, direccion: str, id_municipio: int,
+                   id_medico: int, id_usuario_creacion: int | None = None,
+                   telefono: str | None = None):
     nuevo_id = execute_query("""
-        INSERT INTO paciente (id_municipio, id_empleado_medico, nombre, direccion)
-        VALUES (%s, %s, %s, %s);
-    """, (id_municipio, id_medico, nombre, direccion))
+        INSERT INTO paciente (id_municipio, id_empleado_medico, id_usuario_creacion, nombre, direccion)
+        VALUES (%s, %s, %s, %s, %s);
+    """, (id_municipio, id_medico, id_usuario_creacion, nombre, direccion))
 
     if telefono and telefono.strip():
         execute_query("""
@@ -103,13 +120,11 @@ def crear_paciente(nombre: str, direccion: str, id_municipio: int, id_medico: in
     return nuevo_id
 
 
-def actualizar_paciente(id_paciente: int, nombre: str, direccion: str, id_municipio: int, id_medico: int):
+def actualizar_paciente(id_paciente: int, nombre: str, direccion: str,
+                        id_municipio: int, id_medico: int):
     execute_query("""
         UPDATE paciente
-        SET nombre = %s,
-            direccion = %s,
-            id_municipio = %s,
-            id_empleado_medico = %s
+        SET nombre = %s, direccion = %s, id_municipio = %s, id_empleado_medico = %s
         WHERE id_paciente = %s;
     """, (nombre, direccion, id_municipio, id_medico, id_paciente))
 
@@ -118,18 +133,31 @@ def eliminar_paciente(id_paciente: int):
     execute_query("DELETE FROM paciente WHERE id_paciente = %s;", (id_paciente,))
 
 
-def crear_diagnostico(id_paciente: int, fecha, descripcion: str):
+# ============================================================
+# DIAGNÓSTICOS
+# ============================================================
+
+def obtener_diagnostico(id_diagnostico: int):
+    df = fetch_dataframe("""
+        SELECT id_diagnostico, id_paciente, fecha, descripcion
+        FROM diagnostico
+        WHERE id_diagnostico = %s;
+    """, (id_diagnostico,))
+    return None if df.empty else df.iloc[0]
+
+
+def crear_diagnostico(id_paciente: int, fecha, descripcion: str,
+                      id_usuario_creacion: int | None = None):
     return execute_query("""
-        INSERT INTO diagnostico (id_paciente, fecha, descripcion)
-        VALUES (%s, %s, %s);
-    """, (id_paciente, fecha, descripcion))
+        INSERT INTO diagnostico (id_paciente, id_usuario_creacion, fecha, descripcion)
+        VALUES (%s, %s, %s, %s);
+    """, (id_paciente, id_usuario_creacion, fecha, descripcion))
 
 
 def actualizar_diagnostico(id_diagnostico: int, fecha, descripcion: str):
     execute_query("""
         UPDATE diagnostico
-        SET fecha = %s,
-            descripcion = %s
+        SET fecha = %s, descripcion = %s
         WHERE id_diagnostico = %s;
     """, (fecha, descripcion, id_diagnostico))
 
@@ -137,6 +165,10 @@ def actualizar_diagnostico(id_diagnostico: int, fecha, descripcion: str):
 def eliminar_diagnostico(id_diagnostico: int):
     execute_query("DELETE FROM diagnostico WHERE id_diagnostico = %s;", (id_diagnostico,))
 
+
+# ============================================================
+# HORARIOS
+# ============================================================
 
 def crear_horario(id_medico: int, dia_semana: str, hora_inicio, hora_fin):
     return execute_query("""
@@ -149,6 +181,10 @@ def eliminar_horario(id_horario: int):
     execute_query("DELETE FROM horario WHERE id_horario = %s;", (id_horario,))
 
 
+# ============================================================
+# VACACIONES
+# ============================================================
+
 def crear_vacacion(id_empleado: int, fecha_inicio, fecha_fin):
     return execute_query("""
         INSERT INTO vacaciones (id_empleado, fecha_inicio, fecha_fin)
@@ -158,3 +194,94 @@ def crear_vacacion(id_empleado: int, fecha_inicio, fecha_fin):
 
 def eliminar_vacacion(id_vacacion: int):
     execute_query("DELETE FROM vacaciones WHERE id_vacacion = %s;", (id_vacacion,))
+
+
+# ============================================================
+# HISTORIAL MÉDICO (NUEVO)
+# ============================================================
+
+def historial_paciente(id_paciente: int):
+    """Retorna DataFrame con todo el historial de diagnósticos de un paciente."""
+    return fetch_dataframe("""
+        SELECT d.fecha, d.descripcion,
+               COALESCE(u.nombre_completo, '—') AS registrado_por,
+               d.id_diagnostico
+        FROM diagnostico d
+        LEFT JOIN usuario u ON d.id_usuario_creacion = u.id_usuario
+        WHERE d.id_paciente = %s
+        ORDER BY d.fecha DESC, d.id_diagnostico DESC;
+    """, (id_paciente,))
+
+
+def pacientes_por_medico(id_medico: int):
+    """Retorna los pacientes asignados a un médico específico."""
+    return fetch_dataframe("""
+        SELECT p.id_paciente, p.nombre AS paciente,
+               m.id_medico, CONCAT(e.nombre, ' (', esp.nombre, ')') AS medico,
+               p.direccion, mun.nombre AS municipio
+        FROM paciente p
+        JOIN vw_medicos_info m ON p.id_empleado_medico = m.id_medico
+        JOIN empleado e ON m.id_medico = e.id_empleado
+        JOIN especialidad esp ON m.id_especialidad = esp.id_especialidad
+        JOIN municipio mun ON p.id_municipio = mun.id_municipio
+        WHERE m.id_medico = %s
+        ORDER BY p.nombre;
+    """, (id_medico,))
+
+
+def resumen_centro():
+    """Retorna estadísticas generales del centro."""
+    return fetch_dataframe("""
+        SELECT
+            (SELECT COUNT(*) FROM paciente) AS total_pacientes,
+            (SELECT COUNT(*) FROM medico) AS total_medicos,
+            (SELECT COUNT(*) FROM diagnostico) AS total_diagnosticos,
+            (SELECT COUNT(*) FROM usuario WHERE activo = TRUE) AS total_usuarios,
+            (SELECT COUNT(*) FROM horario) AS total_horarios,
+            (SELECT COUNT(*) FROM enfermedad) AS total_enfermedades;
+    """)
+
+
+# ============================================================
+# USUARIOS (para administración)
+# ============================================================
+
+def listar_usuarios_completo():
+    """Retorna todos los usuarios para gestión administrativa."""
+    return fetch_dataframe("""
+        SELECT id_usuario, username, nombre_completo, rol, activo, fecha_creacion
+        FROM usuario
+        ORDER BY activo DESC, nombre_completo;
+    """)
+
+
+def obtener_usuario(id_usuario: int):
+    """Retorna un usuario por ID."""
+    df = fetch_dataframe("""
+        SELECT id_usuario, username, nombre_completo, rol, activo
+        FROM usuario WHERE id_usuario = %s;
+    """, (id_usuario,))
+    return None if df.empty else df.iloc[0]
+
+
+def crear_usuario(username: str, password_hash: str, nombre_completo: str, rol: str) -> int:
+    """Crea un nuevo usuario."""
+    return execute_query("""
+        INSERT INTO usuario (username, password_hash, nombre_completo, rol)
+        VALUES (%s, %s, %s, %s);
+    """, (username, password_hash, nombre_completo, rol))
+
+
+def actualizar_usuario(id_usuario: int, nombre_completo: str, rol: str, activo: bool):
+    """Actualiza datos de un usuario."""
+    execute_query("""
+        UPDATE usuario SET nombre_completo = %s, rol = %s, activo = %s
+        WHERE id_usuario = %s;
+    """, (nombre_completo, rol, activo, id_usuario))
+
+
+def actualizar_password(id_usuario: int, password_hash: str):
+    """Cambia la contraseña de un usuario."""
+    execute_query("""
+        UPDATE usuario SET password_hash = %s WHERE id_usuario = %s;
+    """, (password_hash, id_usuario))

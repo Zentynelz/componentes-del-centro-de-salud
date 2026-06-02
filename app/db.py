@@ -6,12 +6,8 @@ from config import DB_CONFIG
 
 def get_connection():
     try:
+        # charset='utf8mb4' en DB_CONFIG ya fuerza UTF-8
         conn = mysql.connector.connect(**DB_CONFIG)
-        # Forzar UTF-8 para que las tildes y caracteres españoles se vean bien
-        cursor = conn.cursor()
-        cursor.execute("SET NAMES 'utf8mb4'")
-        cursor.execute("SET CHARACTER SET utf8mb4")
-        cursor.close()
         return conn
     except Error as e:
         raise RuntimeError(f"Error al conectar con MySQL: {e}") from e
