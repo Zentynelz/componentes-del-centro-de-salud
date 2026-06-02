@@ -285,3 +285,75 @@ def actualizar_password(id_usuario: int, password_hash: str):
     execute_query("""
         UPDATE usuario SET password_hash = %s WHERE id_usuario = %s;
     """, (password_hash, id_usuario))
+
+
+# ============================================================
+# CRUD DE MÉDICOS
+# ============================================================
+
+def crear_medico(nombre: str, direccion: str, id_municipio: int,
+                 id_profesion: int, num_licencia: str,
+                 id_especialidad: int, id_tipo: int) -> int:
+    """
+    Crea un empleado + médico (dos INSERTS en transacción).
+    Retorna el id_empleado (= id_medico).
+    """
+    # 1. Insertar empleado
+    id_emp = execute_query("""
+        INSERT INTO empleado (id_municipio, id_profesion, nombre, direccion)
+        VALUES (%s, %s, %s, %s);
+    """, (id_municipio, id_profesion, nombre, direccion))
+
+    # 2. Insertar médico
+    execute_query("""
+        INSERT INTO medico (id_empleado, num_licencia, id_tipo, id_especialidad)
+        VALUES (%s, %s, %s, %s);
+    """, (id_emp, num_licencia, id_tipo, id_especialidad))
+
+    return id_emp
+
+
+def eliminar_medico(id_medico: int):
+    """
+    Elimina un médico (CASCADE borra el empleado asociado).
+    """
+    execute_query("DELETE FROM medico WHERE id_empleado = %s;", (id_medico,))
+
+
+def obtener_medico(id_medico: int):
+    """Retorna datos completos de un médico para edición."""
+    return fetch_dataframe("""
+        SELECT e.id_empleado AS id_medico, e.nombre, e.direccion,
+               e.id_municipio, e.id_profesion,
+               m.num_licencia, m.id_especialidad, m.id_tipo
+        FROM empleado e
+        JOIN medico m ON e.id_empleado = m.id_empleado
+        WHERE e.id_empleado = %s;
+    """, (id_medico,))
+
+
+def actualizar_medico(id_medico: int, nombre: str, direccion: str,
+                      id_municipio: int, id_profesion: int,
+                      num_licencia: str, id_especialidad: int, id_tipo: int):
+    """Actualiza datos de empleado + médico."""
+    execute_query("""
+        UPDATE empleado SET nombre = %s, direccion = %s,
+            id_municipio = %s, id_profesion = %s
+        WHERE id_empleado = %s;
+    """, (nombre, direccion, id_municipio, id_profesion, id_medico))
+    execute_query("""
+        UPDATE medico SET num_licencia = %s, id_especialidad = %s, id_tipo = %s
+        WHERE id_empleado = %s;
+    """, (num_licencia, id_especialidad, id_tipo, id_medico))
+
+
+def opciones_profesiones():
+    return fetch_pairs("SELECT id_profesion, nombre FROM profesion ORDER BY nombre;")
+
+
+def opciones_especialidades():
+    return fetch_pairs("SELECT id_especialidad, nombre FROM especialidad ORDER BY nombre;")
+
+
+def opciones_tipos_medico():
+    return fetch_pairs("SELECT id_tipo, nombre FROM tipo_medico ORDER BY nombre;")

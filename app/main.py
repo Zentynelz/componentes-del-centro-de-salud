@@ -38,27 +38,6 @@ from auth import (
     cambiar_password,
 )
 import crud as _crud
-from crud import (
-    opciones_municipios,
-    opciones_medicos,
-    opciones_empleados,
-    opciones_pacientes,
-    opciones_diagnosticos,
-    opciones_horarios,
-    opciones_vacaciones,
-    obtener_paciente,
-    obtener_diagnostico,
-    crear_paciente,
-    actualizar_paciente,
-    eliminar_paciente,
-    crear_diagnostico,
-    actualizar_diagnostico,
-    eliminar_diagnostico,
-    crear_horario,
-    eliminar_horario,
-    crear_vacacion,
-    eliminar_vacacion,
-)
 
 # ============================================================
 # CONFIGURACIÓN DE PÁGINA
@@ -658,8 +637,8 @@ def pagina_pacientes():
             nombre = st.text_input("Nombre completo")
             direccion = st.text_input("Dirección")
             telefono = st.text_input("Teléfono principal (opcional)")
-            id_municipio = pair_select("Municipio", opciones_municipios(), key="crear_paciente_municipio")
-            id_medico = pair_select("Médico responsable", opciones_medicos(), key="crear_paciente_medico")
+            id_municipio = pair_select("Municipio", _crud.opciones_municipios(), key="crear_paciente_municipio")
+            id_medico = pair_select("Médico responsable", _crud.opciones_medicos(), key="crear_paciente_medico")
             enviar = st.form_submit_button("Guardar paciente")
 
             if enviar:
@@ -669,7 +648,7 @@ def pagina_pacientes():
                     try:
                         usuario = usuario_actual()
                         id_usuario = usuario["id_usuario"] if usuario else None
-                        nuevo_id = crear_paciente(
+                        nuevo_id = _crud.crear_paciente(
                             nombre.strip(), direccion.strip(),
                             id_municipio, id_medico,
                             id_usuario_creacion=id_usuario,
@@ -681,12 +660,12 @@ def pagina_pacientes():
                         st.exception(e)
 
     elif operacion == "Actualizar paciente":
-        id_paciente = pair_select("Paciente a actualizar", opciones_pacientes(), key="actualizar_paciente_select")
+        id_paciente = pair_select("Paciente a actualizar", _crud.opciones_pacientes(), key="actualizar_paciente_select")
         if id_paciente:
-            actual = obtener_paciente(id_paciente)
+            actual = _crud.obtener_paciente(id_paciente)
             if actual is not None:
-                municipios = opciones_municipios()
-                medicos = opciones_medicos()
+                municipios = _crud.opciones_municipios()
+                medicos = _crud.opciones_medicos()
 
                 with st.form("form_actualizar_paciente"):
                     nombre = st.text_input("Nombre", value=str(actual["nombre"]))
@@ -705,7 +684,7 @@ def pagina_pacientes():
 
                     if enviar:
                         try:
-                            actualizar_paciente(id_paciente, nombre.strip(), direccion.strip(), id_municipio, id_medico)
+                            _crud.actualizar_paciente(id_paciente, nombre.strip(), direccion.strip(), id_municipio, id_medico)
                             st.success("Paciente actualizado correctamente.")
                         except Exception as e:
                             st.error("No se pudo actualizar el paciente.")
@@ -713,7 +692,7 @@ def pagina_pacientes():
 
     elif operacion == "Eliminar paciente":
         st.markdown("<div class='danger'>⚠️ Al eliminar un paciente se eliminan también sus teléfonos y diagnósticos asociados.</div>", unsafe_allow_html=True)
-        id_paciente = pair_select("Paciente a eliminar", opciones_pacientes(), key="eliminar_paciente_select")
+        id_paciente = pair_select("Paciente a eliminar", _crud.opciones_pacientes(), key="eliminar_paciente_select")
         confirmar = st.checkbox("Confirmo que deseo eliminar este paciente")
 
         if st.button("Eliminar paciente"):
@@ -721,7 +700,7 @@ def pagina_pacientes():
                 st.warning("Marca la casilla de confirmación.")
             else:
                 try:
-                    eliminar_paciente(id_paciente)
+                    _crud.eliminar_paciente(id_paciente)
                     st.success("Paciente eliminado correctamente.")
                 except Exception as e:
                     st.error("No se pudo eliminar el paciente.")
@@ -750,7 +729,7 @@ def pagina_diagnosticos():
 
     if operacion == "Registrar diagnóstico":
         with st.form("form_crear_diagnostico"):
-            id_paciente = pair_select("Paciente", opciones_pacientes(), key="crear_diag_paciente")
+            id_paciente = pair_select("Paciente", _crud.opciones_pacientes(), key="crear_diag_paciente")
             fecha_diag = st.date_input("Fecha", value=date.today())
             enfermedades = _crud.opciones_enfermedades()
             enfermedad_sel = st.selectbox(
@@ -773,16 +752,16 @@ def pagina_diagnosticos():
                     try:
                         usuario = usuario_actual()
                         id_usuario = usuario["id_usuario"] if usuario else None
-                        nuevo_id = crear_diagnostico(id_paciente, fecha_diag, diag_final, id_usuario_creacion=id_usuario)
+                        nuevo_id = _crud.crear_diagnostico(id_paciente, fecha_diag, diag_final, id_usuario_creacion=id_usuario)
                         st.success(f"Diagnóstico registrado correctamente. ID: {nuevo_id}")
                     except Exception as e:
                         st.error("No se pudo registrar el diagnóstico.")
                         st.exception(e)
 
     elif operacion == "Actualizar diagnóstico":
-        id_diag = pair_select("Diagnóstico a actualizar", opciones_diagnosticos(), key="actualizar_diag_select")
+        id_diag = pair_select("Diagnóstico a actualizar", _crud.opciones_diagnosticos(), key="actualizar_diag_select")
         if id_diag:
-            actual = obtener_diagnostico(id_diag)
+            actual = _crud.obtener_diagnostico(id_diag)
             if actual is not None:
                 with st.form("form_actualizar_diagnostico"):
                     fecha_diag = st.date_input("Fecha", value=actual["fecha"])
@@ -791,14 +770,14 @@ def pagina_diagnosticos():
 
                     if enviar:
                         try:
-                            actualizar_diagnostico(id_diag, fecha_diag, descripcion.strip())
+                            _crud.actualizar_diagnostico(id_diag, fecha_diag, descripcion.strip())
                             st.success("Diagnóstico actualizado correctamente.")
                         except Exception as e:
                             st.error("No se pudo actualizar el diagnóstico.")
                             st.exception(e)
 
     elif operacion == "Eliminar diagnóstico":
-        id_diag = pair_select("Diagnóstico a eliminar", opciones_diagnosticos(), key="eliminar_diag_select")
+        id_diag = pair_select("Diagnóstico a eliminar", _crud.opciones_diagnosticos(), key="eliminar_diag_select")
         confirmar = st.checkbox("Confirmo que deseo eliminar este diagnóstico")
 
         if st.button("Eliminar diagnóstico"):
@@ -806,7 +785,7 @@ def pagina_diagnosticos():
                 st.warning("Marca la casilla de confirmación.")
             else:
                 try:
-                    eliminar_diagnostico(id_diag)
+                    _crud.eliminar_diagnostico(id_diag)
                     st.success("Diagnóstico eliminado correctamente.")
                 except Exception as e:
                     st.error("No se pudo eliminar el diagnóstico.")
@@ -826,7 +805,7 @@ def pagina_gestion_medica():
         st.subheader("Historial clínico completo")
         st.markdown("<div class='notice'>Selecciona un paciente para ver todo su historial de diagnósticos.</div>", unsafe_allow_html=True)
 
-        id_paciente = pair_select("Paciente", opciones_pacientes(), key="historial_paciente_select")
+        id_paciente = pair_select("Paciente", _crud.opciones_pacientes(), key="historial_paciente_select")
         if id_paciente and st.button("Ver historial completo", key="btn_historial"):
             df_hist = _crud.historial_paciente(id_paciente)
             if df_hist.empty:
@@ -838,7 +817,7 @@ def pagina_gestion_medica():
     # ---- TAB 2: MÉDICOS Y PACIENTES ----
     with tabs[1]:
         st.subheader("Pacientes por médico")
-        id_medico = pair_select("Médico", opciones_medicos(), key="medico_pacientes_select")
+        id_medico = pair_select("Médico", _crud.opciones_medicos(), key="medico_pacientes_select")
         if id_medico and st.button("Ver pacientes asignados", key="btn_pacientes_x_medico"):
             df_pac = _crud.pacientes_por_medico(id_medico)
             show_table(df_pac, "Este médico no tiene pacientes asignados.")
@@ -864,7 +843,7 @@ def pagina_gestion_medica():
             show_table(agenda_por_dia(dia), "No hay horarios para ese día.")
         elif vista == "Registrar horario":
             with st.form("form_crear_horario_gm"):
-                id_medico = pair_select("Médico", opciones_medicos(), key="crear_horario_medico_gm")
+                id_medico = pair_select("Médico", _crud.opciones_medicos(), key="crear_horario_medico_gm")
                 dia = st.selectbox("Día de consulta", dias)
                 hora_inicio = st.time_input("Hora de inicio", value=time(8, 0))
                 hora_fin = st.time_input("Hora de fin", value=time(12, 0))
@@ -874,18 +853,18 @@ def pagina_gestion_medica():
                         st.warning("La hora final debe ser mayor que la hora inicial.")
                     else:
                         try:
-                            nuevo_id = crear_horario(id_medico, dia, hora_inicio, hora_fin)
+                            nuevo_id = _crud.crear_horario(id_medico, dia, hora_inicio, hora_fin)
                             st.success(f"Horario registrado. ID: {nuevo_id}")
                         except Exception as e:
                             st.error("No se pudo registrar el horario.")
                             st.exception(e)
         elif vista == "Eliminar horario":
             show_table(agenda_semanal(), "No hay horarios.")
-            id_horario = pair_select("Horario a eliminar", opciones_horarios(), key="eliminar_horario_select_gm")
+            id_horario = pair_select("Horario a eliminar", _crud.opciones_horarios(), key="eliminar_horario_select_gm")
             confirmar = st.checkbox("Confirmo la eliminación", key="confirm_horario")
             if st.button("Eliminar horario") and confirmar:
                 try:
-                    eliminar_horario(id_horario)
+                    _crud.eliminar_horario(id_horario)
                     st.success("Horario eliminado.")
                 except Exception as e:
                     st.error("Error al eliminar.")
@@ -902,7 +881,7 @@ def pagina_gestion_medica():
             show_table(listado_vacaciones(busqueda.strip()), "No hay vacaciones registradas.")
         elif vista_v == "Registrar vacaciones":
             with st.form("form_crear_vacacion_gm"):
-                id_empleado = pair_select("Empleado", opciones_empleados(), key="crear_vacacion_empleado_gm")
+                id_empleado = pair_select("Empleado", _crud.opciones_empleados(), key="crear_vacacion_empleado_gm")
                 fecha_inicio = st.date_input("Fecha inicio", value=date.today())
                 fecha_fin = st.date_input("Fecha fin", value=date.today())
                 enviar = st.form_submit_button("Guardar vacaciones")
@@ -911,18 +890,18 @@ def pagina_gestion_medica():
                         st.warning("La fecha final debe ser mayor o igual a la inicial.")
                     else:
                         try:
-                            nuevo_id = crear_vacacion(id_empleado, fecha_inicio, fecha_fin)
+                            nuevo_id = _crud.crear_vacacion(id_empleado, fecha_inicio, fecha_fin)
                             st.success(f"Vacaciones registradas. ID: {nuevo_id}")
                         except Exception as e:
                             st.error("Error al registrar.")
                             st.exception(e)
         elif vista_v == "Eliminar vacaciones":
             show_table(listado_vacaciones(), "No hay vacaciones.")
-            id_vacacion = pair_select("Periodo a eliminar", opciones_vacaciones(), key="eliminar_vacacion_select_gm")
+            id_vacacion = pair_select("Periodo a eliminar", _crud.opciones_vacaciones(), key="eliminar_vacacion_select_gm")
             confirmar = st.checkbox("Confirmo la eliminación", key="confirm_vacaciones")
             if st.button("Eliminar vacaciones") and confirmar:
                 try:
-                    eliminar_vacacion(id_vacacion)
+                    _crud.eliminar_vacacion(id_vacacion)
                     st.success("Vacaciones eliminadas.")
                 except Exception as e:
                     st.error("Error al eliminar.")
@@ -1057,6 +1036,72 @@ def pagina_reportes():
 
 
 # ============================================================
+# GESTIÓN DE MÉDICOS (CRUD)
+# ============================================================
+def pagina_medicos():
+    title("Gestión de médicos", "Registrar, consultar y eliminar médicos del centro de salud.")
+
+    st.markdown("<div class='notice'>👨‍⚕️ Los médicos se registran como empleados con licencia y especialidad.</div>", unsafe_allow_html=True)
+
+    # Mostrar directorio médico
+    st.subheader("Directorio médico actual")
+    show_table(directorio_medicos(""), "No hay médicos registrados.")
+
+    st.divider()
+    st.subheader("Operaciones")
+
+    operacion = st.selectbox(
+        "Operación sobre médicos",
+        ["Registrar médico", "Eliminar médico"],
+        key="medicos_operacion"
+    )
+
+    if operacion == "Registrar médico":
+        with st.form("form_crear_medico"):
+            nombre = st.text_input("Nombre completo")
+            direccion = st.text_input("Dirección")
+            id_municipio = pair_select("Municipio", _crud.opciones_municipios(), key="crear_medico_municipio")
+            id_profesion = pair_select("Profesión", _crud.opciones_profesiones(), key="crear_medico_profesion")
+            num_licencia = st.text_input("Número de licencia", placeholder="Ej: LIC-2024-001")
+            id_especialidad = pair_select("Especialidad", _crud.opciones_especialidades(), key="crear_medico_especialidad")
+            id_tipo = pair_select("Tipo de médico", _crud.opciones_tipos_medico(), key="crear_medico_tipo")
+            enviar = st.form_submit_button("Guardar médico")
+
+            if enviar:
+                if not nombre.strip() or not direccion.strip() or not num_licencia.strip():
+                    st.warning("Completa nombre, dirección y licencia.")
+                elif None in (id_municipio, id_profesion, id_especialidad, id_tipo):
+                    st.warning("Selecciona todas las opciones requeridas.")
+                else:
+                    try:
+                        nuevo_id = _crud.crear_medico(
+                            nombre.strip(), direccion.strip(), id_municipio,
+                            id_profesion, num_licencia.strip(),
+                            id_especialidad, id_tipo
+                        )
+                        st.success(f"Médico registrado correctamente. ID: {nuevo_id}")
+                    except Exception as e:
+                        st.error("No se pudo registrar el médico. Verifica que la licencia no esté duplicada.")
+                        st.exception(e)
+
+    elif operacion == "Eliminar médico":
+        st.markdown("<div class='danger'>⚠️ Al eliminar un médico se eliminan también sus horarios, periodos de sustitución y pacientes asociados.</div>", unsafe_allow_html=True)
+        id_medico = pair_select("Médico a eliminar", _crud.opciones_medicos(), key="eliminar_medico_select")
+        confirmar = st.checkbox("Confirmo que deseo eliminar este médico y todos sus registros asociados")
+
+        if st.button("Eliminar médico"):
+            if not confirmar:
+                st.warning("Marca la casilla de confirmación.")
+            else:
+                try:
+                    _crud.eliminar_medico(id_medico)
+                    st.success("Médico eliminado correctamente.")
+                except Exception as e:
+                    st.error("No se pudo eliminar el médico.")
+                    st.exception(e)
+
+
+# ============================================================
 # APLICACIÓN PRINCIPAL
 # ============================================================
 
@@ -1088,7 +1133,7 @@ with st.sidebar:
         mostrar_info_usuario()
         st.divider()
 
-        opciones_menu = ["🏠 Inicio", "👥 Pacientes", "📋 Diagnósticos", "📊 Gestión médica", "📈 Reportes"]
+        opciones_menu = ["🏠 Inicio", "👥 Pacientes", "📋 Diagnósticos", "👨‍⚕️ Médicos", "📊 Gestión médica", "📈 Reportes"]
         if es_admin():
             opciones_menu.append("👤 Usuarios")
 
@@ -1109,6 +1154,8 @@ else:
         pagina_pacientes()
     elif page == "📋 Diagnósticos":
         pagina_diagnosticos()
+    elif page == "👨‍⚕️ Médicos":
+        pagina_medicos()
     elif page == "📊 Gestión médica":
         pagina_gestion_medica()
     elif page == "👤 Usuarios":

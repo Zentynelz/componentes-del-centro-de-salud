@@ -136,7 +136,7 @@ def login_required():
 
 
 def mostrar_info_usuario():
-    """Muestra la barra de usuario en la parte superior."""
+    """Muestra la info del usuario con botón de salir."""
     usuario = usuario_actual()
     if usuario:
         roles_emoji = {
@@ -146,18 +146,34 @@ def mostrar_info_usuario():
             "recepcionista": "💁",
         }
         emoji = roles_emoji.get(usuario["rol"], "👤")
-        col1, col2 = st.columns([5, 1])
-        with col1:
-            st.markdown(
-                f"<span style='color: #f5c842; font-size: 0.9rem;'>"
-                f"{emoji} {usuario['nombre_completo']} "
-                f"<span style='color: #888;'>· {usuario['rol'].capitalize()}</span></span>",
-                unsafe_allow_html=True,
-            )
-        with col2:
-            if st.button("🚪 Salir", use_container_width=True):
-                cerrar_sesion()
-                st.rerun()
+        # Mostrar usuario
+        st.markdown(
+            f"<div style='padding:4px 0;margin-bottom:6px;'>"
+            f"<span style='color:#f5c842;font-size:0.9rem;font-weight:700;'>{emoji} {usuario['nombre_completo']}</span><br>"
+            f"<span style='color:#8b949e;font-size:0.8rem;'>Rol: {usuario['rol'].capitalize()}</span>"
+            f"</div>",
+            unsafe_allow_html=True,
+        )
+        # Botón de salir estilizado
+        st.markdown("""
+        <style>
+        div[data-testid="stButton"] button[kind="secondary"] {
+            background: transparent !important;
+            border: 1px solid #e9456066 !important;
+            color: #e94560 !important;
+            border-radius: 8px !important;
+            font-size: 0.8rem !important;
+            padding: 4px 12px !important;
+        }
+        div[data-testid="stButton"] button[kind="secondary"]:hover {
+            background: rgba(233, 69, 96, 0.1) !important;
+            border-color: #e94560 !important;
+        }
+        </style>
+        """, unsafe_allow_html=True)
+        if st.button("🚪 Salir", key="btn_logout", use_container_width=True, type="secondary"):
+            cerrar_sesion()
+            st.rerun()
 
 
 def listar_usuarios() -> list[tuple]:
