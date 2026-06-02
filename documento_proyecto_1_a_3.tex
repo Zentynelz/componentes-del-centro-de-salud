@@ -494,6 +494,7 @@ Registra los diagn\'osticos m\'edicos que se le han hecho a cada paciente a lo l
 id\_diagnostico & INT & PK, NOT NULL, AUTO\_INCREMENT & Identificador \'unico del diagn\'ostico \\ \hline
 id\_paciente & INT & FK $\rightarrow$ PACIENTE, NOT NULL & Paciente al que pertenece el diagn\'ostico \\ \hline
 id\_usuario\_creacion & INT & FK $\rightarrow$ USUARIO, NULL, DEFAULT NULL & Usuario que registr\'o el diagn\'ostico \\ \hline
+id\_enfermedad & INT & FK $\rightarrow$ ENFERMEDAD, NULL, DEFAULT NULL & Enfermedad diagnosticada (del cat\'alogo) \\ \hline
 fecha & DATE & NOT NULL & Fecha en que se hizo el diagn\'ostico \\ \hline
 descripcion & VARCHAR(255) & NOT NULL & Descripci\'on detallada del diagn\'ostico \\ \hline
 \caption{DIAGNOSTICO}
@@ -721,11 +722,16 @@ Busca pacientes cuyo diagn\'ostico contenga una palabra clave (por ejemplo, ``Hi
 DELIMITER $$
 
 DROP PROCEDURE IF EXISTS sp_pacientes_por_diagnostico $$
-CREATE PROCEDURE sp_pacientes_por_diagnostico(IN p_busqueda VARCHAR(100))
+CREATE PROCEDURE sp_pacientes_por_diagnostico(IN p_enfermedad VARCHAR(150))
 BEGIN
+    IF p_enfermedad IS NULL OR TRIM(p_enfermedad) = '' THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Debe ingresar una enfermedad para la búsqueda.';
+    END IF;
+
     SELECT *
     FROM vw_diagnosticos_pacientes
-    WHERE diagnostico LIKE CONCAT('%', p_busqueda, '%')
+    WHERE enfermedad LIKE CONCAT('%', TRIM(p_enfermedad), '%')
     ORDER BY fecha DESC, paciente;
 END $$
 
@@ -926,11 +932,15 @@ CREATE TABLE telefono_paciente (
 CREATE TABLE diagnostico (
     id_diagnostico INT AUTO_INCREMENT PRIMARY KEY,
     id_paciente INT NOT NULL,
+    id_enfermedad INT DEFAULT NULL,
     fecha DATE NOT NULL,
     descripcion VARCHAR(255) NOT NULL,
     CONSTRAINT fk_diagnostico_paciente
         FOREIGN KEY (id_paciente) REFERENCES paciente(id_paciente)
-        ON DELETE CASCADE
+        ON DELETE CASCADE,
+    CONSTRAINT fk_diagnostico_enfermedad
+        FOREIGN KEY (id_enfermedad) REFERENCES enfermedad(id_enfermedad)
+        ON DELETE SET NULL
 ) ENGINE=InnoDB;
 
 -- TABLA DE USUARIOS (autenticaci\'on y roles)
@@ -966,6 +976,14 @@ ALTER TABLE diagnostico
 ADD COLUMN id_usuario_creacion INT DEFAULT NULL AFTER id_paciente,
 ADD CONSTRAINT fk_diagnostico_usuario
     FOREIGN KEY (id_usuario_creacion) REFERENCES usuario(id_usuario)
+    ON DELETE SET NULL;
+
+-- Se agrega la FK a enfermedad para los diagn\'osticos
+
+ALTER TABLE diagnostico
+ADD COLUMN id_enfermedad INT DEFAULT NULL AFTER id_usuario_creacion,
+ADD CONSTRAINT fk_diagnostico_enfermedad
+    FOREIGN KEY (id_enfermedad) REFERENCES enfermedad(id_enfermedad)
     ON DELETE SET NULL;
 
 -- VISTAS (las armamos para los reportes)
@@ -1008,6 +1026,7 @@ SELECT
     d.id_diagnostico,
     d.fecha,
     d.descripcion AS diagnostico,
+    COALESCE(e.nombre, 'Sin enfermedad') AS enfermedad,
     p.id_paciente,
     p.nombre AS paciente,
     p.direccion AS direccion_paciente,
@@ -1017,10 +1036,11 @@ SELECT
     esp.nombre AS especialidad
 FROM diagnostico d
 JOIN paciente p ON d.id_paciente = p.id_paciente
-JOIN municipio mp ON p.id_municipio = mp.id_municipio
-JOIN medico med ON p.id_empleado_medico = med.id_empleado
-JOIN empleado em ON med.id_empleado = em.id_empleado
-JOIN especialidad esp ON med.id_especialidad = esp.id_especialidad;
+LEFT JOIN municipio mp ON p.id_municipio = mp.id_municipio
+LEFT JOIN enfermedad e ON d.id_enfermedad = e.id_enfermedad
+LEFT JOIN medico med ON p.id_empleado_medico = med.id_empleado
+LEFT JOIN empleado em ON med.id_empleado = em.id_empleado
+LEFT JOIN especialidad esp ON med.id_especialidad = esp.id_especialidad;
 
 CREATE OR REPLACE VIEW vw_vacaciones_medicos AS
 SELECT
@@ -1110,11 +1130,16 @@ BEGIN
 END $$
 
 DROP PROCEDURE IF EXISTS sp_pacientes_por_diagnostico $$
-CREATE PROCEDURE sp_pacientes_por_diagnostico(IN p_busqueda VARCHAR(100))
+CREATE PROCEDURE sp_pacientes_por_diagnostico(IN p_enfermedad VARCHAR(150))
 BEGIN
+    IF p_enfermedad IS NULL OR TRIM(p_enfermedad) = '' THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Debe ingresar una enfermedad para la búsqueda.';
+    END IF;
+
     SELECT *
     FROM vw_diagnosticos_pacientes
-    WHERE diagnostico LIKE CONCAT('%', p_busqueda, '%')
+    WHERE enfermedad LIKE CONCAT('%', TRIM(p_enfermedad), '%')
     ORDER BY fecha DESC, paciente;
 END $$
 

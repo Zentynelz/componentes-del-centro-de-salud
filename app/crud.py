@@ -147,11 +147,12 @@ def obtener_diagnostico(id_diagnostico: int):
 
 
 def crear_diagnostico(id_paciente: int, fecha, descripcion: str,
-                      id_usuario_creacion: int | None = None):
+                      id_usuario_creacion: int | None = None,
+                      id_enfermedad: int | None = None):
     return execute_query("""
-        INSERT INTO diagnostico (id_paciente, id_usuario_creacion, fecha, descripcion)
-        VALUES (%s, %s, %s, %s);
-    """, (id_paciente, id_usuario_creacion, fecha, descripcion))
+        INSERT INTO diagnostico (id_paciente, id_usuario_creacion, id_enfermedad, fecha, descripcion)
+        VALUES (%s, %s, %s, %s, %s);
+    """, (id_paciente, id_usuario_creacion, id_enfermedad, fecha, descripcion))
 
 
 def actualizar_diagnostico(id_diagnostico: int, fecha, descripcion: str):

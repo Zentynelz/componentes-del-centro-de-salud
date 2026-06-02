@@ -745,14 +745,29 @@ def pagina_diagnosticos():
             enviar = st.form_submit_button("Guardar diagnóstico")
 
             if enviar:
-                diag_final = enfermedad_sel if enfermedad_sel else (descripcion.strip() if descripcion else "")
+                id_enf = None
+                diag_final = ""
+                if enfermedad_sel:
+                    # Find the id_enfermedad for the selected name
+                    for e_id, e_name in enfermedades:
+                        if e_name == enfermedad_sel:
+                            id_enf = e_id
+                            break
+                    diag_final = enfermedad_sel
+                elif descripcion.strip():
+                    diag_final = descripcion.strip()
+
                 if id_paciente is None or not diag_final:
                     st.warning("Selecciona un paciente y una enfermedad o escribe la descripción.")
                 else:
                     try:
                         usuario = usuario_actual()
                         id_usuario = usuario["id_usuario"] if usuario else None
-                        nuevo_id = _crud.crear_diagnostico(id_paciente, fecha_diag, diag_final, id_usuario_creacion=id_usuario)
+                        nuevo_id = _crud.crear_diagnostico(
+                            id_paciente, fecha_diag, diag_final,
+                            id_usuario_creacion=id_usuario,
+                            id_enfermedad=id_enf
+                        )
                         st.success(f"Diagnóstico registrado correctamente. ID: {nuevo_id}")
                     except Exception as e:
                         st.error("No se pudo registrar el diagnóstico.")
