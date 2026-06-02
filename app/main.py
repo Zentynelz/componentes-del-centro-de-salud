@@ -46,7 +46,6 @@ from crud import (
     opciones_diagnosticos,
     opciones_horarios,
     opciones_vacaciones,
-    opciones_usuarios,
     obtener_paciente,
     obtener_diagnostico,
     crear_paciente,
@@ -59,11 +58,6 @@ from crud import (
     eliminar_horario,
     crear_vacacion,
     eliminar_vacacion,
-    historial_paciente,
-    pacientes_por_medico,
-    resumen_centro,
-    listar_usuarios_completo,
-    obtener_usuario,
 )
 
 # ============================================================
@@ -598,7 +592,7 @@ def pagina_inicio():
     title("Panel general", "Vista rápida del estado operativo y clínico del centro de salud.")
 
     try:
-        data = resumen_centro().iloc[0]
+        data = _crud.resumen_centro().iloc[0]
 
         c1, c2, c3, c4 = st.columns(4)
         with c1:
@@ -834,7 +828,7 @@ def pagina_gestion_medica():
 
         id_paciente = pair_select("Paciente", opciones_pacientes(), key="historial_paciente_select")
         if id_paciente and st.button("Ver historial completo", key="btn_historial"):
-            df_hist = historial_paciente(id_paciente)
+            df_hist = _crud.historial_paciente(id_paciente)
             if df_hist.empty:
                 st.info("Este paciente no tiene diagnósticos registrados.")
             else:
@@ -846,7 +840,7 @@ def pagina_gestion_medica():
         st.subheader("Pacientes por médico")
         id_medico = pair_select("Médico", opciones_medicos(), key="medico_pacientes_select")
         if id_medico and st.button("Ver pacientes asignados", key="btn_pacientes_x_medico"):
-            df_pac = pacientes_por_medico(id_medico)
+            df_pac = _crud.pacientes_por_medico(id_medico)
             show_table(df_pac, "Este médico no tiene pacientes asignados.")
 
         st.divider()
@@ -949,7 +943,7 @@ def pagina_usuarios():
     tab1, tab2 = st.tabs(["👥 Usuarios registrados", "➕ Nuevo usuario"])
 
     with tab1:
-        df_usuarios = listar_usuarios_completo()
+        df_usuarios = _crud.listar_usuarios_completo()
         show_table(df_usuarios, "No hay usuarios registrados.")
 
         st.divider()
@@ -960,7 +954,7 @@ def pagina_usuarios():
             id_usuario = pair_select("Seleccionar usuario", usuarios_opts, key="editar_usuario_select")
 
             if id_usuario:
-                user_data = obtener_usuario(id_usuario)
+                user_data = _crud.obtener_usuario(id_usuario)
                 if user_data is not None:
                     with st.form("form_editar_usuario"):
                         new_nombre = st.text_input("Nombre completo", value=str(user_data["nombre_completo"]))
