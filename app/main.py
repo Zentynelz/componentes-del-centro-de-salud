@@ -24,6 +24,7 @@ from crud import (
     opciones_diagnosticos,
     opciones_horarios,
     opciones_vacaciones,
+    opciones_enfermedades,
     obtener_paciente,
     obtener_diagnostico,
     crear_paciente,
@@ -624,15 +625,26 @@ elif page == "Gestión clínica":
             with st.form("form_crear_diagnostico"):
                 id_paciente = pair_select("Paciente", opciones_pacientes(), key="crear_diag_paciente")
                 fecha_diag = st.date_input("Fecha", value=date.today())
-                descripcion = st.text_area("Descripción del diagnóstico")
+                enfermedades = opciones_enfermedades()
+                enfermedad_sel = st.selectbox(
+                    "Enfermedad (predefinida)",
+                    [""] + [e[1] for e in enfermedades],
+                    format_func=lambda x: "--- Seleccione una enfermedad ---" if x == "" else x
+                )
+                descripcion = st.text_area(
+                    "O escribir diagnóstico manualmente",
+                    placeholder="Solo si la enfermedad no está en la lista",
+                    help="Si seleccionaste una enfermedad arriba, este campo es opcional."
+                )
                 enviar = st.form_submit_button("Guardar diagnóstico")
 
                 if enviar:
-                    if id_paciente is None or not descripcion.strip():
-                        st.warning("Selecciona un paciente y escribe la descripción.")
+                    diag_final = enfermedad_sel if enfermedad_sel else descripcion.strip() if descripcion else ""
+                    if id_paciente is None or not diag_final:
+                        st.warning("Selecciona un paciente y una enfermedad o escribe la descripción.")
                     else:
                         try:
-                            nuevo_id = crear_diagnostico(id_paciente, fecha_diag, descripcion.strip())
+                            nuevo_id = crear_diagnostico(id_paciente, fecha_diag, diag_final)
                             st.success(f"Diagnóstico registrado correctamente. ID: {nuevo_id}")
                         except Exception as e:
                             st.error("No se pudo registrar el diagnóstico.")

@@ -52,6 +52,14 @@ def opciones_horarios():
     """)
 
 
+def opciones_enfermedades():
+    return fetch_pairs("""
+        SELECT id_enfermedad, nombre
+        FROM enfermedad
+        ORDER BY nombre;
+    """)
+
+
 def opciones_vacaciones():
     return fetch_pairs("""
         SELECT v.id_vacacion,

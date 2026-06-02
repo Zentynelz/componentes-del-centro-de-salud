@@ -11,4 +11,6 @@ DB_CONFIG = {
     "user": os.getenv("DB_USER", "root"),
     "password": os.getenv("DB_PASSWORD", ""),
     "database": os.getenv("DB_NAME", "centro_salud"),
+    "charset": "utf8mb4",
+    "use_unicode": True,
 }
